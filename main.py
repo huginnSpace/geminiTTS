@@ -75,8 +75,6 @@ def convert_to_wav(audio_data: bytes, mime_type: str) -> bytes:
 
 # --- Конфигурация API ключа ---
 # Ключ будет браться из переменной окружения GEMINI_API_KEY.
-# Если переменная не установлена, будет использован ключ-плейсхолдер из вашего кода.
-# ЗАМЕНИТЕ "AIzaSyDs_H3obSOCgo3aV8ZKIj8tnX3HKOxOS0s" НА ВАШ РЕАЛЬНЫЙ КЛЮЧ-ПЛЕЙСХОЛДЕР ИЛИ УСТАНОВИТЕ ПЕРЕМЕННУЮ ОКРУЖЕНИЯ
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
  # Ваш ключ из примера
 
