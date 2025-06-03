@@ -1,117 +1,122 @@
 # Gemini TTS API (Text-to-Speech)
 
-Это приложение представляет собой FastAPI сервис, обернутый в Docker-контейнер, который предоставляет API для преобразования текста в речь (TTS) с использованием Google Gemini API.
+This application is a FastAPI service wrapped in a Docker container that provides an API for converting text to speech (TTS) using the Google Gemini API.
 
-## Особенности
+## Features
 
-* Преобразование текста в речь через Google Gemini.
-* Возможность выбора голоса (например, "Zephyr").
-* Возвращает аудиофайл в формате MP3/WAV (или в исходном формате, если он уже WAV).
-* Легко развертывается с помощью Docker.
+*   Text-to-speech conversion via Google Gemini.
+*   Voice selection (e.g., "Zephyr").
+*   Returns audio file in MP3/WAV format (or in the original format if it is already WAV).
+*   Easily deployable with Docker.
 
-## Предварительные требования
+## Prerequisites
 
-1.  **Docker**: Убедитесь, что Docker установлен и запущен на вашем компьютере. ([Инструкция по установке Docker](https://docs.docker.com/get-docker/))
-2.  **Google Gemini API Key**: Вам необходим действительный API ключ от Google для доступа к Gemini API. Вы можете получить его из [Google AI Studio](https://aistudio.google.com/app/apikey) или Google Cloud Console.
+1.  **Docker**: Ensure that Docker is installed and running on your computer. ([Docker Installation Guide](https://docs.docker.com/get-docker/))
+2.  **Google Gemini API Key**: You need a valid API key from Google to access the Gemini API. You can get it from [Google AI Studio](https://aistudio.google.com/app/apikey) or Google Cloud Console.
 
-## Структура проекта
+## Project Structure
 
-* .
-* ├── Dockerfile        # Инструкции для сборки Docker-образа
-* ├── main.py           # Основной код FastAPI приложения
-* ├── README.md         # Этот файл
-* └── requirements.txt  # Список Python-зависимостей
+*   .
+*   ├── Dockerfile        # Instructions for building the Docker image
+*   ├── main.py           # Main code for the FastAPI application
+*   ├── README.md         # This file
+*   └── requirements.txt  # List of Python dependencies
 
-## Настройка и Установка
+## Setup and Installation
 
-1.  **Клонируйте репозиторий** (если применимо) или убедитесь, что у вас есть все файлы проекта (`main.py`, `Dockerfile`, `requirements.txt`).
+1.  **Clone the repository** (if applicable) or ensure you have all project files (`main.py`, `Dockerfile`, `requirements.txt`).
 
-2.  **API Ключ Gemini**:
-    Приложение требует, чтобы `GEMINI_API_KEY` был установлен как переменная окружения. **Без этого ключа приложение не запустится.**
+2.  **Gemini API Key**:
+    The application requires `GEMINI_API_KEY` to be set as an environment variable. **Without this key, the application will not start.**
 
-## Сборка Docker-образа
+## Building the Docker Image
 
-Перейдите в корневую директорию проекта в вашем терминале и выполните следующую команду для сборки Docker-образа:
+Navigate to the root directory of the project in your terminal and run the following command to build the Docker image:
 
 ```bash
 docker build -t gemini-tts-api .
-
 ```
-* -t gemini-tts-api: Задает имя (тег) для вашего образа. Вы можете выбрать другое имя.
-* .: Указывает, что Dockerfile и контекст сборки находятся в текущей директории.
-### Запуск Docker-контейнера
-## После успешной сборки образа запустите Docker-контейнер:
 
-docker run -d -p 8000:8000 -e GEMINI_API_KEY="ВАШ_ДЕЙСТВИТЕЛЬНЫЙ_API_КЛЮЧ" --name my-tts-container gemini-tts-api
+*   -t gemini-tts-api: Sets the name (tag) for your image. You can choose a different name.
+*   .: Specifies that the Dockerfile and build context are in the current directory.
 
-## Использование API
+### Running the Docker Container
 
-После запуска контейнера API будет доступно на порту, который вы указали (например, `8000`).
+After successfully building the image, run the Docker container:
 
-### Эндпоинт
+```bash
+docker run -d -p 8000:8000 -e GEMINI_API_KEY="YOUR_VALID_API_KEY" --name my-tts-container gemini-tts-api
+```
 
-- **URL:** `/generate-tts/`  
-- **Метод:** `POST`
+## Using the API
 
-### Тело запроса
+After starting the container, the API will be available on the port you specified (e.g., `8000`).
 
-Запрос должен быть в формате **JSON** и содержать следующие поля:
+### Endpoint
 
-- `text` (`string`, **обязательное**) — Текст, который нужно преобразовать в речь.
-- `voice_name` (`string`, необязательное) — Имя голоса для озвучивания.  
-  По умолчанию используется `"Zephyr"`. Список доступных голосов можно найти в документации **Google Gemini**.
+*   **URL:** `/generate-tts/`
+*   **Method:** `POST`
+
+### Request Body
+
+The request must be in **JSON** format and contain the following fields:
+
+*   `text` (`string`, **required**) — The text to convert to speech.
+*   `voice_name` (`string`, optional) — The name of the voice for speech synthesis.
+    The default is `"Zephyr"`. A list of available voices can be found in the **Google Gemini** documentation.
+
 ```json
 {
-  "text": "Привет, это голосовой ассистент Gemini!",
+  "text": "Hello, this is Gemini voice assistant!",
   "voice_name": "Zephyr"
 }
 ```
 
-### Пример запроса с использованием `curl`
+### Example Request using `curl`
 
-Замените `8001` на порт вашего хоста, если вы использовали другой.
+Replace `8001` with your host port if you used a different one.
 
 #### Bash
 
 ```bash
 curl -X POST "http://localhost:8000/generate-tts/" \
      -H "Content-Type: application/json" \
-     -d '{"text": "Это тестовое сообщение для Gemini TTS.", "voice_name": "Zephyr"}' \
+     -d '{"text": "This is a test message for Gemini TTS.", "voice_name": "Zephyr"}' \
      --output speech_output.wav
 ```
 
-## Описание
+## Description
 
-Эта команда отправит запрос и сохранит полученный аудиофайл как `speech_output.wav` в текущей директории.
-
----
-
-## Успешный ответ
-
-- **Статус код:** `200 OK`
-- **Тело ответа:** Бинарные данные аудиофайла.
-- **Заголовки:**
-  - `Content-Type`: например, `audio/wav`
-  - `Content-Disposition`: например, `attachment; filename="speech.wav"`
+This command will send a request and save the received audio file as `speech_output.wav` in the current directory.
 
 ---
 
-## Ошибки
+## Successful Response
 
-- **400 Bad Request**  
-  Возникает, если поле `text` пустое или запрос некорректен.
-
-- **422 Unprocessable Entity**  
-  Если тело запроса не соответствует Pydantic-модели (например, неправильные типы данных).
-
-- **500 Internal Server Error**  
-  Ошибки на стороне сервера, включая:
-  - Проблемы с Gemini API (неверный ключ, сбой сервиса и т.д.)
-  - Ошибки конвертации аудио.  
-  Проверьте логи контейнера для диагностики.
+*   **Status code:** `200 OK`
+*   **Response body:** Binary data of the audio file.
+*   **Headers:**
+    *   `Content-Type`: e.g., `audio/wav`
+    *   `Content-Disposition`: e.g., `attachment; filename="speech.wav"`
 
 ---
 
-## Важно
+## Errors
 
-Если переменная `GEMINI_API_KEY` не установлена при запуске, контейнер не запустится корректно. Вы увидите ошибку в логах Docker или при попытке запуска.
+*   **400 Bad Request**
+    Occurs if the `text` field is empty or the request is invalid.
+
+*   **422 Unprocessable Entity**
+    If the request body does not conform to the Pydantic model (e.g., incorrect data types).
+
+*   **500 Internal Server Error**
+    Server-side errors, including:
+    *   Problems with the Gemini API (invalid key, service failure, etc.)
+    *   Audio conversion errors.
+    Check the container logs for diagnostics.
+
+---
+
+## Important
+
+If the `GEMINI_API_KEY` variable is not set at startup, the container will not start correctly. You will see an error in the Docker logs or when trying to start.
