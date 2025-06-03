@@ -6,17 +6,17 @@ import struct
 from dotenv import load_dotenv
 
 load_dotenv()
-# Ваши оригинальные импорты Gemini
+# Your original Gemini imports
 from google import genai
 from google.genai import types
 
-# Импорты для FastAPI
+# Imports for FastAPI
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import io
 
-# --- Ваши оригинальные вспомогательные функции (БЕЗ ИЗМЕНЕНИЙ) ---
+# --- Your original helper functions (NO CHANGES) ---
 def save_binary_file(file_name, data):
     f = open(file_name, "wb")
     f.write(data)
@@ -27,7 +27,7 @@ def parse_audio_mime_type(mime_type: str) -> dict[str, int | None]:
     bits_per_sample = 16
     rate = 24000
 
-    if mime_type: # Убедимся, что mime_type не None
+    if mime_type: # Make sure mime_type is not None
         parts = mime_type.split(";")
         for param in parts: 
             param = param.strip()
@@ -37,11 +37,11 @@ def parse_audio_mime_type(mime_type: str) -> dict[str, int | None]:
                     rate = int(rate_str)
                 except (ValueError, IndexError):
                     pass 
-            # В вашем оригинальном коде это было elif param.startswith("audio/L"):
-            # Чтобы это работало для "audio/L16", нужно учесть регистр или использовать .lower()
+            # In your original code this was elif param.startswith("audio/L"):
+            # To make it work for "audio/L16", you need to consider the case or use .lower()
             elif param.lower().startswith("audio/l"): 
                 try:
-                    # Извлекаем число после 'L'
+                    # Extract the number after 'L'
                     bps_str = param.split("L", 1)[1] if "L" in param else param.split("l", 1)[1]
                     bits_per_sample = int(bps_str)
                 except (ValueError, IndexError, AttributeError):
@@ -55,7 +55,7 @@ def convert_to_wav(audio_data: bytes, mime_type: str) -> bytes:
     sample_rate = parameters.get("rate", 24000)
     
     if bits_per_sample is None or sample_rate is None:
-        raise ValueError("Не удалось определить bits_per_sample или rate из MIME-типа для конвертации в WAV.")
+        raise ValueError("Failed to determine bits_per_sample or rate from MIME type for WAV conversion.")
 
     num_channels = 1
     data_size = len(audio_data)
@@ -73,42 +73,42 @@ def convert_to_wav(audio_data: bytes, mime_type: str) -> bytes:
     )
     return header + audio_data
 
-# --- Конфигурация API ключа ---
-# Ключ будет браться из переменной окружения GEMINI_API_KEY.
+# --- API key configuration ---
+# The key will be taken from the environment variable GEMINI_API_KEY.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
- # Ваш ключ из примера
+ # Your key from the example
 
 if not GEMINI_API_KEY:
-    # Если ключ не найден, возбуждаем ошибку. Приложение не запустится.
-    # Это лучше, чем падать позже при попытке использовать None ключ.
+    # If the key is not found, raise an error. The application will not start.
+    # This is better than failing later when trying to use a None key.
     raise ValueError(
-        "ОШИБКА: Переменная окружения GEMINI_API_KEY не установлена. "
-        "Пожалуйста, установите ее перед запуском приложения. "
-        "Например, при запуске Docker-контейнера через флаг -e GEMINI_API_KEY=\"ВАШ_КЛЮЧ\""
+        "ERROR: The GEMINI_API_KEY environment variable is not set. "
+        "Please set it before running the application. "
+        "For example, when running a Docker container via the -e GEMINI_API_KEY=\"YOUR_KEY\" flag"
     )
 
-# --- Адаптированная функция для генерации аудио, использующая ваш стиль ---
+# --- Adapted function for generating audio, using your style ---
 async def generate_audio_for_api(text_input: str, voice_input: str):
-   # Инициализация клиента, как в вашем коде
+   # Initialize the client, as in your code
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    model = "gemini-2.5-flash-preview-tts" # Модель из вашего кода
+    model = "gemini-2.5-flash-preview-tts" # Model from your code
     contents = [
         types.Content(
             role="user",
             parts=[
-                types.Part.from_text(text=text_input), # Используем переданный текст
+                types.Part.from_text(text=text_input), # Use the passed text
             ],
         ),
     ]
-    # Конфигурация, как в вашем коде (сохраняем temperature=1, если это важно для вас)
+    # Configuration, as in your code (save temperature=1, if this is important to you)
     generate_content_config = types.GenerateContentConfig(
-        temperature=1, # Как в вашем оригинальном коде
+        temperature=1, # As in your original code
         response_modalities=["audio"],
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                    voice_name=voice_input # Используем переданный голос
+                    voice_name=voice_input # Use the passed voice
                 )
             )
         ),
@@ -118,81 +118,81 @@ async def generate_audio_for_api(text_input: str, voice_input: str):
     source_audio_mime_type = None
 
     try:
-        # Ваш оригинальный способ вызова стриминга
+        # Your original way of calling streaming
         for chunk in client.models.generate_content_stream(
             model=model,
             contents=contents,
-            config=generate_content_config, # Имя параметра 'config' как в вашем коде
+            config=generate_content_config, # Parameter name 'config' as in your code
         ):
             if (
                 chunk.candidates is None
-                or not chunk.candidates[0].content # Проверка, что content существует
+                or not chunk.candidates[0].content # Check that content exists
                 or chunk.candidates[0].content.parts is None
             ):
                 continue
             
-            if chunk.candidates[0].content.parts: # Проверка, что список parts не пуст
+            if chunk.candidates[0].content.parts: # Check that the parts list is not empty
                 part = chunk.candidates[0].content.parts[0]
                 if part.inline_data and part.inline_data.data:
-                    inline_data_obj = part.inline_data # Переименовал для ясности
+                    inline_data_obj = part.inline_data # Renamed for clarity
                     current_chunk_audio_data = inline_data_obj.data
                     
                     if source_audio_mime_type is None:
                         source_audio_mime_type = inline_data_obj.mime_type
                     elif source_audio_mime_type != inline_data_obj.mime_type:
-                        # Это предупреждение полезно, но для API мы обычно продолжаем с первым типом
-                        print(f"Предупреждение: MIME-тип изменился в потоке с {source_audio_mime_type} на {inline_data_obj.mime_type}")
+                        # This warning is useful, but for the API we usually continue with the first type
+                        print(f"Warning: MIME type changed in stream from {source_audio_mime_type} to {inline_data_obj.mime_type}")
                     
-                    # Накапливаем сырые аудиоданные из каждого чанка
+                    # Accumulate raw audio data from each chunk
                     accumulated_audio_data.extend(current_chunk_audio_data)
-                # Ваш оригинальный код также печатал chunk.text, если он был
+                # Your original code also printed chunk.text, if it was
                 # elif hasattr(chunk, 'text') and chunk.text:
-                # print(chunk.text) # Раскомментируйте, если нужно логировать текстовые части
+                # print(chunk.text) # Uncomment if you need to log text parts
     
     except Exception as e:
-        # import traceback # Раскомментируйте для детальной отладки
-        # traceback.print_exc() # Раскомментируйте для детальной отладки
-        print(f"Ошибка во время вызова Gemini API: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка генерации TTS: {str(e)}")
+        # import traceback # Uncomment for detailed debugging
+        # traceback.print_exc() # Uncomment for detailed debugging
+        print(f"Error during Gemini API call: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS generation error: {str(e)}")
 
     if not accumulated_audio_data:
-        raise HTTPException(status_code=500, detail="Не были получены аудиоданные от сервиса TTS")
+        raise HTTPException(status_code=500, detail="No audio data received from TTS service")
 
     final_audio_data_bytes = bytes(accumulated_audio_data)
-    output_media_type_for_response = "audio/wav" # По умолчанию мы хотим вернуть WAV
+    output_media_type_for_response = "audio/wav" # By default we want to return WAV
 
-    # Конвертация в WAV выполняется ОДИН РАЗ после сбора ВСЕХ чанков, если необходимо
+    # Conversion to WAV is performed ONCE after collecting ALL chunks, if necessary
     if source_audio_mime_type:
-        # Оригинальная логика предполагала конвертацию, если mimetypes.guess_extension вернул None
-        # Более надежно проверить, является ли исходный тип уже WAV
+        # Original logic assumed conversion if mimetypes.guess_extension returned None
+        # It is more reliable to check if the source type is already WAV
         if "wav" not in source_audio_mime_type.lower():
             try:
-                print(f"Собранные данные имеют MIME-тип: {source_audio_mime_type}. Конвертация в WAV.")
+                print(f"Collected data has MIME type: {source_audio_mime_type}. Converting to WAV.")
                 final_audio_data_bytes = convert_to_wav(final_audio_data_bytes, source_audio_mime_type)
             except Exception as e:
-                print(f"Ошибка конвертации собранных аудиоданных в WAV: {e}")
-                raise HTTPException(status_code=500, detail=f"Ошибка конвертации аудио в WAV: {str(e)}")
+                print(f"Error converting collected audio data to WAV: {e}")
+                raise HTTPException(status_code=500, detail=f"Error converting audio to WAV: {str(e)}")
         else:
-            # Если исходный тип уже WAV, используем его
+            # If the source type is already WAV, use it
             output_media_type_for_response = source_audio_mime_type
-            print(f"Собранные данные уже в формате WAV (MIME-тип: {source_audio_mime_type}). Конвертация не требуется.")
+            print(f"Collected data is already in WAV format (MIME type: {source_audio_mime_type}). Conversion not required.")
     else:
-        # Этого не должно произойти, если accumulated_audio_data не пусто
-        raise HTTPException(status_code=500, detail="MIME-тип аудиоданных не был определен, хотя данные есть.")
+        # This should not happen if accumulated_audio_data is not empty
+        raise HTTPException(status_code=500, detail="MIME type of audio data was not determined, although data exists.")
         
     return final_audio_data_bytes, output_media_type_for_response
 
-# --- FastAPI приложение ---
+# --- FastAPI application ---
 app = FastAPI()
 
 class TTSRequest(BaseModel):
     text: str
-    voice_name: str = "Zephyr" # Голос по умолчанию из вашего примера
+    voice_name: str = "Zephyr" # Default voice from your example
 
-@app.post("/generate-tts/") # Можно изменить имя эндпоинта при желании
+@app.post("/generate-tts/") # You can change the endpoint name if you wish
 async def api_generate_tts_endpoint(request: TTSRequest = Body(...)):
     if not request.text:
-        raise HTTPException(status_code=400, detail="Поле 'text' не может быть пустым.")
+        raise HTTPException(status_code=400, detail="The 'text' field cannot be empty.")
 
     try:
         audio_bytes, media_type = await generate_audio_for_api(
@@ -200,11 +200,11 @@ async def api_generate_tts_endpoint(request: TTSRequest = Body(...)):
             request.voice_name
         )
         
-        # Определяем расширение файла для Content-Disposition
-        filename_extension = "wav" # По умолчанию wav
+        # Determine the file extension for Content-Disposition
+        filename_extension = "wav" # Default wav
         if media_type and "/" in media_type:
             possible_ext = media_type.split("/")[-1]
-            # Простой список распространенных аудио расширений
+            # Simple list of common audio extensions
             if possible_ext in ["wav", "mp3", "ogg", "aac", "opus", "flac", "mpeg"]: 
                  filename_extension = possible_ext
         
@@ -214,10 +214,10 @@ async def api_generate_tts_endpoint(request: TTSRequest = Body(...)):
             headers={"Content-Disposition": f"attachment; filename=\"speech.{filename_extension}\""}
         )
     except HTTPException:
-        raise # Перебрасываем HTTPException от FastAPI или нашей логики
+        raise # Re-raise HTTPException from FastAPI or our logic
     except Exception as e:
-        print(f"Неожиданная ошибка в эндпоинте /generate-tts/: {e}")
-        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера при обработке TTS запроса.")
+        print(f"Unexpected error in the /generate-tts/ endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error while processing TTS request.")
 
-# Ваш оригинальный if __name__ == "__main__": generate() заменяется запуском Uvicorn
-# Пример запуска: uvicorn main:app --reload (где main.py - имя вашего файла)
+# Your original if __name__ == "__main__": generate() is replaced by running Uvicorn
+# Example launch: uvicorn main:app --reload (where main.py is the name of your file)
